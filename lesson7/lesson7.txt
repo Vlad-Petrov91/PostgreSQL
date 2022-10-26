@@ -1,0 +1,113 @@
+1)
+CREATE VIEW users_with_confirmed_friendship AS
+SELECT DISTINCT users.id
+FROM users
+  LEFT JOIN friendship
+    ON users.id = friendship.requested_by_user_id
+WHERE friendship.status_id = 2;
+
+
+BEGIN;
+    DELETE FROM communities_users 
+        USING users_without_confirmed_friendship
+    WHERE user_id = users_without_confirmed_friendship.id;
+
+    DELETE FROM friendship
+    USING users_without_confirmed_friendship
+     WHERE requested_by_user_id = users_without_confirmed_friendship.id;
+
+    DELETE FROM messages
+        USING users_without_confirmed_friendship
+    WHERE from_user_id = users_without_confirmed_friendship.id
+    OR to_user_id = users_without_confirmed_friendship.id;
+
+    UPDATE users 
+        USING users_without_confirmed_friendship
+        SET main_photo_id = NULL 
+    WHERE id = users_without_confirmed_friendship.id;
+
+    DELETE FROM photo
+        USING users_without_confirmed_friendship
+    WHERE owner_id = users_without_confirmed_friendship.id;
+
+    DELETE FROM video 
+        USING users_without_confirmed_friendship
+    WHERE owner_id = users_without_confirmed_friendship.id;
+
+    DELETE FROM users
+        USING users_without_confirmed_friendship
+    WHERE id = users_without_confirmed_friendship.id;
+COMMIT;
+
+2)
+SELECT DISTINCT
+    users.id,
+    COUNT(photo.id) OVER (PARTITION BY users.id) AS photo_count
+        FROM users
+        LEFT JOIN photo
+    ON users.id = photo.owner_id;
+
+SELECT DISTINCT
+    users.id,
+    COUNT(video.id) OVER (PARTITION BY users.id) AS video_count
+    FROM users
+        LEFT JOIN video
+    ON users.id = video.owner_id;	  
+
+WITH users_photo_and_video_rating AS (
+SELECT DISTINCT
+    users.first_name,
+    users.last_name,
+    photo_count,
+    video_count
+    FROM users
+        JOIN (
+        SELECT DISTINCT
+        users.id,
+        COUNT(photo.id) OVER (PARTITION BY users.id) AS photo_count
+        FROM users
+        LEFT JOIN photo
+        ON users.id = photo.owner_id
+	) AS selected_photo_count
+      ON users.id = selected_photo_count.id
+    JOIN (
+    SELECT DISTINCT
+        users.id,
+        COUNT(video.id) OVER (PARTITION BY users.id) AS video_count
+          FROM users
+            LEFT JOIN video
+              ON users.id = video.owner_id
+	) AS selected_video_count
+      ON users.id = selected_video_count.id)
+SELECT
+    first_name,
+    last_name,
+    photo_count,
+    video_count,
+    DENSE_RANK() OVER (ORDER BY photo_count DESC) AS photo_rank,
+    DENSE_RANK() OVER (ORDER BY video_count DESC) AS video_rank
+        FROM users_photo_and_video_rating
+    ORDER BY photo_rank, video_rank;
+
+3)
+WITH selected_videos AS (
+SELECT
+    communities.name AS community_name,
+    communities_users.user_id,
+    video.size AS video_size
+FROM video
+    INNER JOIN communities_users
+        ON video.owner_id = communities_users.user_id
+    RIGHT JOIN communities
+        ON communities.id = communities_users.community_id
+)
+SELECT DISTINCT
+    community_name,
+    ROUND(AVG(video_size) OVER (PARTITION BY community_name)) AS average_video_size,
+    FIRST_VALUE(first_name || ' ' || last_name) OVER (PARTITION BY community_name 
+	ORDER BY video_size DESC NULLS LAST) AS user_with_biggest_video
+FROM selected_videos
+    LEFT JOIN users
+        ON selected_videos.user_id = users.id;
+
+
