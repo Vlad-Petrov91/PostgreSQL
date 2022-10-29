@@ -1,0 +1,103 @@
+5)
+SELECT
+  id,
+  price,
+  shop_id,
+  delivery_method_id,
+  products_and_quantity,
+  completed
+FROM orders
+  WHERE user_id =
+  (SELECT id FROM users WHERE first_name = 'Dane' AND last_name =
+  'Good' AND completed = 'false');
+
+SELECT
+  (SELECT CONCAT(first_name, ' ', last_name) FROM users WHERE id =
+  orders.user_id) AS user,
+  (SELECT phone FROM users WHERE id =
+  orders.user_id) AS user,
+  price,
+  completed
+FROM orders WHERE completed = 'false'
+  ORDER BY price DESC
+  LIMIT 10;
+
+6)
+SELECT
+  first_name,
+  last_name,
+  phone,
+  biggest_sum.price,
+  biggest_sum.completed
+FROM users
+  JOIN (SELECT user_id, price, completed
+  FROM orders WHERE completed = 'false'
+  ORDER BY price DESC
+  LIMIT 10) AS biggest_sum
+  ON users.id = biggest_sum.user_id;
+
+SELECT 
+  argest_number_of_reviews.user_id, 
+  first_name, 
+  last_name
+FROM users
+  JOIN (SELECT user_id FROM reviews GROUP BY user_id
+  ORDER BY COUNT(*) DESC
+  LIMIT 1) AS largest_number_of_reviews
+  ON users.id = largest_number_of_reviews.user_id;
+
+7)
+CREATE VIEW products_of_category AS
+  SELECT products.id, products.name, products.count FROM products
+  LEFT JOIN categories 
+ON products.category_id = categories.id
+WHERE categories.name = 'Cras Limited';
+
+SELECT * FROM products_of_category LIMIT 2;
+
+
+CREATE VIEW largest_number_of_products AS
+SELECT categories.name as category, products.name as product, products.count FROM categories
+  LEFT JOIN products 
+  ON categories.id = products.category_id
+  ORDER BY products.count DESC
+  LIMIT 10;
+
+SELECT * FROM largest_number_of_products;
+
+8)
+CREATE FUNCTION count_of_user_orders(id INTEGER)
+
+RETURNS BIGINT AS
+$$
+  SELECT COUNT(*)
+  FROM orders
+  WHERE user_id = id;
+$$
+  LANGUAGE SQL;
+
+SELECT count_of_user_orders(22);
+
+9)
+CREATE OR REPLACE FUNCTION update_product_description_trigger()
+RETURNS TRIGGER AS
+$$
+  DECLARE count INTEGER;
+  BEGIN
+  count := (SELECT description FROM products WHERE count = NEW.count);
+  IF NEW.count = 0 THEN
+  NEW.description = "The product is over";
+  END IF;
+  RETURN NEW;
+  END;
+$$
+LANGUAGE PLPGSQL;
+
+DROP TRIGGER IF EXISTS check_product_on_update ON products;
+CREATE TRIGGER check_product_on_update BEFORE UPDATE ON products
+FOR EACH ROW
+EXECUTE FUNCTION update_product_description_trigger();
+
+
+
+

@@ -1,0 +1,94 @@
+CREATE TABLE users (
+  id SERIAL PRIMARY KEY,
+  first_name VARCHAR(50) NOT NULL,
+  last_name VARCHAR(50) NOT NULL,
+  address VARCHAR(250) NOT NULL,
+  email VARCHAR(120) NOT NULL UNIQUE,
+  phone VARCHAR(15) UNIQUE,
+  created_at TIMESTAMP
+);
+
+CREATE TABLE categories (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(120) NOT NULL UNIQUE,
+  description VARCHAR(250) NOT NULL
+  );
+
+CREATE TABLE products (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(120) NOT NULL UNIQUE,
+  category_id INT NOT NULL,
+  description VARCHAR(250) NOT NULL,
+  count INT,
+  images_id INT NOT NULL,
+  average_rating FLOAT,
+  added_at TIMESTAMP NOT NULL
+);
+
+CREATE TABLE images (
+  id SERIAL PRIMARY KEY,
+  url VARCHAR(250) NOT NULL UNIQUE,
+  description VARCHAR(250) NOT NULL,
+  uploaded_at TIMESTAMP NOT NULL,
+  size INT NOT NULL
+);
+
+CREATE TABLE images_of_reviews(
+  id SERIAL PRIMARY KEY,
+  url VARCHAR(250) NOT NULL UNIQUE,
+  owner_id INT NOT NULL,
+  description VARCHAR(250) NOT NULL,
+  uploaded_at TIMESTAMP NOT NULL,
+  size INT NOT NULL
+);
+
+CREATE TABLE shops (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(120) NOT NULL UNIQUE,
+  address VARCHAR(250) NOT NULL,
+  opening_hors VARCHAR(100) NOT NULL
+);
+
+CREATE TABLE baskets (
+  id SERIAL PRIMARY KEY,
+  user_id INT NOT NULL,
+  products_and_quantity JSON[],
+  price FLOAT
+);
+
+CREATE TABLE delivery_methods (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(120) NOT NULL UNIQUE,
+  description VARCHAR(250) NOT NULL
+);
+
+CREATE TABLE payment_methods (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(120) NOT NULL UNIQUE,
+  description VARCHAR(250) NOT NULL,
+  requisites VARCHAR(250)
+);
+
+CREATE TABLE orders (
+  id SERIAL PRIMARY KEY,
+  user_id INT NOT NULL,
+  products_and_quantity JSON[],
+  price FLOAT,
+  delivery_method_id INT NOT NULL,
+  payment_method_id INT NOT NULL,
+  shop_id INT NOT NULL,
+  completed BOOLEAN,
+  added_at TIMESTAMP NOT NULL
+);
+
+CREATE TABLE reviews (
+  id SERIAL PRIMARY KEY,
+  user_id INT NOT NULL,
+  product_id INT NOT NULL,
+  order_id INT NOT NULL,
+  text VARCHAR(500),
+  rating INT,
+  images_id INT NOT NULL,
+  added_at TIMESTAMP NOT NULL
+);
+
